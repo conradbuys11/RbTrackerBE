@@ -1,0 +1,6 @@
+@RbTrackerBE_HostAddress = http://localhost:5197
+
+GET {{RbTrackerBE_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
