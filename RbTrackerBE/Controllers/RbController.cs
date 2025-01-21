@@ -67,9 +67,9 @@ namespace RbTrackerBE.Controllers
             }
 
             dbGame.GameType = game.GameType;
-            dbGame.Week = game.Week;
-            dbGame.AwayTeam = game.AwayTeam;
-            dbGame.HomeTeam = game.HomeTeam;
+            dbGame.WeekId = game.WeekId;
+            dbGame.AwayTeamId = game.AwayTeamId;
+            dbGame.HomeTeamId = game.HomeTeamId;
             dbGame.AwayTeamScore = game.AwayTeamScore;
             dbGame.HomeTeamScore = game.HomeTeamScore;
 
@@ -183,6 +183,18 @@ namespace RbTrackerBE.Controllers
             return CreatedAtAction("GetTeamInYear", new { id = team.Id }, team);
         }
 
+        [HttpPost("teamsinyears/many")]
+        public async Task<ActionResult<IEnumerable<TeamInYear>>> PostTeamInYears(IEnumerable<TeamInYear> teams)
+        {
+            foreach (var team in teams)
+            {
+                _context.TeamsInYears.Add(team);
+            }
+            await _context.SaveChangesAsync();
+
+            return Ok();
+        }
+
         [HttpPut("teaminyears/{id}")]
         public async Task<ActionResult<TeamInYear>> PutTeamInYear(int id, TeamInYear team)
         {
@@ -197,8 +209,8 @@ namespace RbTrackerBE.Controllers
                 return NotFound();
             }
 
-            dbTeam.Team = team.Team;
-            dbTeam.Year = team.Year;
+            dbTeam.TeamId = team.TeamId;
+            dbTeam.YearId = team.YearId;
             dbTeam.OfRating = team.OfRating;
             dbTeam.DfRating = team.DfRating;
             dbTeam.Wins = team.Wins;
@@ -207,6 +219,7 @@ namespace RbTrackerBE.Controllers
             dbTeam.LikelyWins = team.LikelyWins;
             dbTeam.LikelyLosses = team.LikelyLosses;
             dbTeam.LikelyTies = team.LikelyTies;
+            dbTeam.ByeId = team.ByeId;
 
             try
             {
@@ -266,7 +279,7 @@ namespace RbTrackerBE.Controllers
             }
 
             dbWeek.WeekNo = week.WeekNo;
-            dbWeek.Year = week.Year;
+            dbWeek.YearId = week.YearId;
 
             try
             {

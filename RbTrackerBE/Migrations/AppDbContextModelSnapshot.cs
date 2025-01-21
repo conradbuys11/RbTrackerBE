@@ -55,7 +55,7 @@ namespace RbTrackerBE.Migrations
 
                     b.HasIndex("WeekId");
 
-                    b.ToTable("Games");
+                    b.ToTable("Games", (string)null);
                 });
 
             modelBuilder.Entity("RbTrackerBE.Models.Team", b =>
@@ -86,7 +86,7 @@ namespace RbTrackerBE.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Teams");
+                    b.ToTable("Teams", (string)null);
                 });
 
             modelBuilder.Entity("RbTrackerBE.Models.TeamInYear", b =>
@@ -138,7 +138,7 @@ namespace RbTrackerBE.Migrations
 
                     b.HasIndex("YearId");
 
-                    b.ToTable("TeamsInYears");
+                    b.ToTable("TeamsInYears", (string)null);
                 });
 
             modelBuilder.Entity("RbTrackerBE.Models.Week", b =>
@@ -159,7 +159,7 @@ namespace RbTrackerBE.Migrations
 
                     b.HasIndex("YearId");
 
-                    b.ToTable("Weeks");
+                    b.ToTable("Weeks", (string)null);
                 });
 
             modelBuilder.Entity("RbTrackerBE.Models.Year", b =>
@@ -175,7 +175,7 @@ namespace RbTrackerBE.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Years");
+                    b.ToTable("Years", (string)null);
                 });
 
             modelBuilder.Entity("RbTrackerBE.Models.Game", b =>

@@ -1,10 +1,7 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace RbTrackerBE.Models
+﻿namespace RbTrackerBE.DTOs
 {
-    public class TeamInYear
+    public class TeamInYearDto
     {
-        [Key]
         public int Id { get; set; }
         public int TeamId { get; set; }
         public int YearId { get; set; }
@@ -20,8 +17,5 @@ namespace RbTrackerBE.Models
         public int LikelyTies { get; set; }
         // public string LikelyRecord { get; set; } should be a function
         public int? ByeId { get; set; }
-        public Week? Bye { get; set; }
-        public ICollection<Game> AwayGames { get; } = new List<Game>();
-        public ICollection<Game> HomeGames { get; } = new List<Game>();
     }
 }
