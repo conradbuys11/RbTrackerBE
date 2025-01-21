@@ -1,10 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using RbTrackerBE.DatabaseContext;
 
+var corsPolicyName = "_myCorsPolicy";
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
+// https://learn.microsoft.com/en-us/ef/core/modeling/data-seeding
 builder.Services.AddDbContext<AppDbContext>(options =>
     options
     .UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
@@ -17,6 +19,16 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
     //})
     );
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: corsPolicyName,
+        policy =>
+        {
+            policy.WithOrigins("http://localhost:5173");
+        });
+});
+
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -30,6 +42,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseCors(corsPolicyName);
 
 app.UseHttpsRedirection();
 

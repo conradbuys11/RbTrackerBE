@@ -7,6 +7,9 @@ namespace RbTrackerBE.Models
         [Key]
         public int Id { get; set; }
         public int WeekNo { get; set; }
-        public Year Year { get; set; }
+        public int YearId { get; set; }
+        public Year Year { get; set; } = null!;
+        public ICollection<Game> Games { get; } = new List<Game>();
+        public ICollection<TeamInYear> Byes { get; } = new List<TeamInYear>();
     }
 }

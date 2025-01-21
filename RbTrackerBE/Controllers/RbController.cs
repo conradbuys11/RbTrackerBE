@@ -20,6 +20,7 @@ namespace RbTrackerBE.Controllers
             _context = context;
         }
 
+        #region Games
         //
         // Games
         //
@@ -67,14 +68,10 @@ namespace RbTrackerBE.Controllers
 
             dbGame.GameType = game.GameType;
             dbGame.Week = game.Week;
-            dbGame.TeamOne = game.TeamOne;
-            dbGame.TeamTwo = game.TeamTwo;
-            dbGame.TeamOneScore = game.TeamOneScore;
-            dbGame.TeamTwoScore = game.TeamTwoScore;
-            dbGame.IsTie = game.IsTie;
-            dbGame.LikelyWinner = game.LikelyWinner;
-            dbGame.Winner = game.Winner;
-            dbGame.Loser = game.Loser;
+            dbGame.AwayTeam = game.AwayTeam;
+            dbGame.HomeTeam = game.HomeTeam;
+            dbGame.AwayTeamScore = game.AwayTeamScore;
+            dbGame.HomeTeamScore = game.HomeTeamScore;
 
             try
             {
@@ -87,7 +84,9 @@ namespace RbTrackerBE.Controllers
 
             return NoContent();
         }
+        #endregion
 
+        #region Teams
         //
         // Teams
         //
@@ -151,6 +150,7 @@ namespace RbTrackerBE.Controllers
 
             return NoContent();
         }
+        #endregion
 
         //
         // TeamsInYears
@@ -201,15 +201,12 @@ namespace RbTrackerBE.Controllers
             dbTeam.Year = team.Year;
             dbTeam.OfRating = team.OfRating;
             dbTeam.DfRating = team.DfRating;
-            dbTeam.AvRating = team.AvRating;
             dbTeam.Wins = team.Wins;
             dbTeam.Losses = team.Losses;
             dbTeam.Ties = team.Ties;
-            dbTeam.Record = team.Record;
             dbTeam.LikelyWins = team.LikelyWins;
             dbTeam.LikelyLosses = team.LikelyLosses;
             dbTeam.LikelyTies = team.LikelyTies;
-            dbTeam.LikelyRecord = team.LikelyRecord;
 
             try
             {
@@ -343,5 +340,9 @@ namespace RbTrackerBE.Controllers
         }
 
 
+        //public async Task<ActionResult<Year>> CreateAndPopulateYear(Year year, IEnumerable<TeamInYear> teamsInYear)
+        //{
+
+        //}
     }
 }

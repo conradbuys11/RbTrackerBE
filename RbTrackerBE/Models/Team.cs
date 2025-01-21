@@ -12,5 +12,6 @@ namespace RbTrackerBE.Models
         public string Name { get; set; }
         public Conference Conference { get; set; }
         public Division Division { get; set; }
+        public ICollection<TeamInYear> TeamInYears { get; } = new List<TeamInYear>();
     }
 }

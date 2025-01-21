@@ -8,14 +8,13 @@ namespace RbTrackerBE.Models
         [Key]
         public int Id { get; set; }
         public GameType GameType { get; set; }
-        public Week Week { get; set; }
-        public TeamInYear TeamOne { get; set; }
-        public TeamInYear TeamTwo { get; set; }
-        public int? TeamOneScore { get; set; }
-        public int? TeamTwoScore { get; set; }
-        public bool? IsTie { get; set; }
-        public TeamInYear LikelyWinner { get; set; }
-        public TeamInYear? Winner { get; set; }
-        public TeamInYear? Loser { get; set; }
+        public int WeekId { get; set; }
+        public Week Week { get; set; } = null!;
+        public int AwayTeamId { get; set; }
+        public TeamInYear AwayTeam { get; set; } = null!;
+        public int HomeTeamId { get; set; }
+        public TeamInYear HomeTeam { get; set; } = null!;
+        public int? AwayTeamScore { get; set; }
+        public int? HomeTeamScore { get; set; }
     }
 }
