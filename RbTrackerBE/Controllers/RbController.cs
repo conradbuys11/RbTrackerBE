@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RbTrackerBE.DatabaseContext;
+using RbTrackerBE.DTOs;
 using RbTrackerBE.Models;
+using RbTrackerBE.Services;
 
 // https://www.c-sharpcorner.com/article/building-a-powerful-asp-net-core-web-api-with-postgresql/ helps a lot
 // though it also just uses a lot of the code from the udemy tutorial?
@@ -14,10 +16,12 @@ namespace RbTrackerBE.Controllers
     public class RbController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IDbService _dbService;
 
-        public RbController(AppDbContext context)
+        public RbController(AppDbContext context, IDbService dbService)
         {
             _context = context;
+            _dbService = dbService;
         }
 
         #region Games
@@ -159,14 +163,14 @@ namespace RbTrackerBE.Controllers
         [HttpGet("teamsinyears")]
         public async Task<ActionResult<IEnumerable<TeamInYear>>> GetTeamsInYears()
         {
-            var teamsInYears = await _context.TeamsInYears.ToListAsync();
+            var teamsInYears = await _context.TeamsInYears.Include(team => team.Team).ToListAsync();
             return teamsInYears;
         }
 
         [HttpGet("teamsinyears/{id}")]
         public async Task<ActionResult<TeamInYear>> GetTeamInYear(int id)
         {
-            var teamInYear = await _context.TeamsInYears.FindAsync(id);
+            var teamInYear = await _context.TeamsInYears.Include(team => team.Team).FirstAsync(team => team.Id == id);
             if (teamInYear is null)
             {
                 return NotFound();
@@ -174,29 +178,49 @@ namespace RbTrackerBE.Controllers
             return teamInYear;
         }
 
-        [HttpPost("teamsinyears")]
-        public async Task<ActionResult<TeamInYear>> PostTeamInYear(TeamInYear team)
+        [HttpGet("teamsinyears/many/{yearId}")]
+        public async Task<ActionResult<IEnumerable<TeamInYear>>> GetTeamsInSpecificYear(int yearId)
         {
-            _context.TeamsInYears.Add(team);
+            bool hasYear = await _context.Years.AnyAsync(year => year.Id == yearId);
+            if (!hasYear)
+            {
+                return BadRequest();
+            }
+
+            var teamsInYear = await _context.TeamsInYears.Include(team => team.Team).Where(team => team.YearId == yearId).ToListAsync();
+            if (teamsInYear is null)
+            {
+                return NotFound();
+            }
+
+            return teamsInYear;
+        }
+
+        [HttpPost("teamsinyears")]
+        public async Task<ActionResult<TeamInYear>> PostTeamInYear(TeamInYearDto team)
+        {
+            TeamInYear teamInYear = await _dbService.TeamInYearDtoConversion(team);
+            _context.TeamsInYears.Add(teamInYear);
             await _context.SaveChangesAsync();
 
             return CreatedAtAction("GetTeamInYear", new { id = team.Id }, team);
         }
 
         [HttpPost("teamsinyears/many")]
-        public async Task<ActionResult<IEnumerable<TeamInYear>>> PostTeamInYears(IEnumerable<TeamInYear> teams)
+        public async Task<ActionResult<IEnumerable<TeamInYear>>> PostTeamInYears(IEnumerable<TeamInYearDto> teams)
         {
             foreach (var team in teams)
             {
-                _context.TeamsInYears.Add(team);
+                TeamInYear teamInYear = await _dbService.TeamInYearDtoConversion(team);
+                _context.TeamsInYears.Add(teamInYear);
             }
             await _context.SaveChangesAsync();
 
-            return Ok();
+            return CreatedAtAction("GetTeamsInSpecificYear", new { yearId = teams.First().YearId }, teams);
         }
 
         [HttpPut("teaminyears/{id}")]
-        public async Task<ActionResult<TeamInYear>> PutTeamInYear(int id, TeamInYear team)
+        public async Task<ActionResult<TeamInYear>> PutTeamInYear(int id, TeamInYearDto team)
         {
             if (id != team.Id)
             {

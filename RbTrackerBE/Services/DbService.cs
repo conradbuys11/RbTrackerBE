@@ -1,0 +1,42 @@
+﻿using RbTrackerBE.DatabaseContext;
+using RbTrackerBE.DTOs;
+using RbTrackerBE.Models;
+
+namespace RbTrackerBE.Services
+{
+    public class DbService : IDbService
+    {
+        private readonly AppDbContext _context;
+        public DbService(AppDbContext context)
+        {
+            _context = context;
+        }
+
+        public async Task<TeamInYear> TeamInYearDtoConversion(TeamInYearDto dto)
+        {
+            var team = await _context.Teams.FindAsync(dto.TeamId);
+            var byeWeek = await _context.Weeks.FindAsync(dto.ByeId);
+            if (team is null)
+            {
+                throw new Exception("Team not found from id.");
+            }
+            return new TeamInYear()
+            {
+                Id = dto.Id,
+                TeamId = dto.TeamId,
+                Team = team,
+                YearId = dto.YearId,
+                OfRating = dto.OfRating,
+                DfRating = dto.DfRating,
+                Wins = dto.Wins,
+                Losses = dto.Losses,
+                Ties = dto.Ties,
+                LikelyWins = dto.LikelyWins,
+                LikelyLosses = dto.LikelyLosses,
+                LikelyTies = dto.LikelyTies,
+                ByeId = dto.ByeId,
+                Bye = byeWeek
+            };
+        }
+    }
+}

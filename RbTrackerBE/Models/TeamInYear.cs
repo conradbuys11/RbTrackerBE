@@ -7,6 +7,7 @@ namespace RbTrackerBE.Models
         [Key]
         public int Id { get; set; }
         public int TeamId { get; set; }
+        public Team Team { get; set; } = null!;
         public int YearId { get; set; }
         public float OfRating { get; set; }
         public float DfRating { get; set; }
