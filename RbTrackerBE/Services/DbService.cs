@@ -12,6 +12,21 @@ namespace RbTrackerBE.Services
             _context = context;
         }
 
+        public async Task<Game> GameDtoConversion(GameDto dto)
+        {
+            var awayTeam = await _context.TeamsInYears.FindAsync(dto.AwayTeamId);
+            var homeTeam = await _context.TeamsInYears.FindAsync(dto.HomeTeamId);
+            if (awayTeam is null)
+            {
+                throw new Exception("Away team not found from id.");
+            }
+            if (homeTeam is null)
+            {
+                throw new Exception("Home team not found from id.");
+            }
+            // TODO: finish this
+        }
+
         public async Task<TeamInYear> TeamInYearDtoConversion(TeamInYearDto dto)
         {
             var team = await _context.Teams.FindAsync(dto.TeamId);
@@ -36,6 +51,19 @@ namespace RbTrackerBE.Services
                 LikelyTies = dto.LikelyTies,
                 ByeId = dto.ByeId,
                 Bye = byeWeek
+            };
+        }
+
+        public async Task<Week> WeekDtoConversion(WeekDto dto)
+        {
+            var year = await _context.Years.FindAsync(dto.YearId);
+            if (year is null) { throw new Exception("Year not found from id."); }
+            return new Week()
+            {
+                Id = dto.Id,
+                WeekNo = dto.WeekNo,
+                YearId = dto.YearId,
+                Year = year
             };
         }
     }

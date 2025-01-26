@@ -56,6 +56,12 @@ namespace RbTrackerBE.Controllers
             return CreatedAtAction("GetGame", new { id = game.Id }, game);
         }
 
+        [HttpPost("games/many")]
+        public async Task<ActionResult<IEnumerable<Game>>> PostGames(IEnumerable<Game> dtos)
+        {
+
+        }
+
         [HttpPut("games/{id}")]
         public async Task<ActionResult<Game>> PutGame(int id, Game game)
         {
@@ -203,20 +209,23 @@ namespace RbTrackerBE.Controllers
             _context.TeamsInYears.Add(teamInYear);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetTeamInYear", new { id = team.Id }, team);
+            return CreatedAtAction("GetTeamInYear", new { id = team.Id }, teamInYear);
         }
 
         [HttpPost("teamsinyears/many")]
         public async Task<ActionResult<IEnumerable<TeamInYear>>> PostTeamInYears(IEnumerable<TeamInYearDto> teams)
         {
+            List<TeamInYear> tiys = new List<TeamInYear>();
             foreach (var team in teams)
             {
                 TeamInYear teamInYear = await _dbService.TeamInYearDtoConversion(team);
-                _context.TeamsInYears.Add(teamInYear);
+                tiys.Add(teamInYear);
             }
+            _context.TeamsInYears.AddRange(tiys);
+
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetTeamsInSpecificYear", new { yearId = teams.First().YearId }, teams);
+            return CreatedAtAction("GetTeamsInSpecificYear", new { yearId = teams.First().YearId }, tiys);
         }
 
         [HttpPut("teaminyears/{id}")]
@@ -286,6 +295,21 @@ namespace RbTrackerBE.Controllers
             await _context.SaveChangesAsync();
 
             return CreatedAtAction("GetWeek", new { id = week.Id }, week);
+        }
+
+        [HttpPost("weeks/many")]
+        public async Task<ActionResult<IEnumerable<Week>>> PostWeeks(IEnumerable<WeekDto> dtos)
+        {
+            List<Week> weeks = new List<Week>();
+            foreach (WeekDto dto in dtos)
+            {
+                Week week = await _dbService.WeekDtoConversion(dto);
+                weeks.Add(week);
+            }
+            _context.Weeks.AddRange(weeks);
+
+            await _context.SaveChangesAsync();
+            return CreatedAtAction("GetWeek", new { id = weeks[0].Id }, weeks);
         }
 
         [HttpPut("weeks/{id}")]
