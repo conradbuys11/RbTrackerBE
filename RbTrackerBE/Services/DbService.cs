@@ -24,7 +24,18 @@ namespace RbTrackerBE.Services
             {
                 throw new Exception("Home team not found from id.");
             }
-            // TODO: finish this
+            return new Game()
+            {
+                Id = dto.Id,
+                GameType = dto.GameType,
+                WeekId = dto.WeekId,
+                AwayTeamId = dto.AwayTeamId,
+                AwayTeam = awayTeam,
+                HomeTeamId = dto.HomeTeamId,
+                HomeTeam = homeTeam,
+                AwayTeamScore = dto.AwayTeamScore,
+                HomeTeamScore = dto.HomeTeamScore,
+            };
         }
 
         public async Task<TeamInYear> TeamInYearDtoConversion(TeamInYearDto dto)

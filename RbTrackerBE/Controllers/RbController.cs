@@ -57,9 +57,19 @@ namespace RbTrackerBE.Controllers
         }
 
         [HttpPost("games/many")]
-        public async Task<ActionResult<IEnumerable<Game>>> PostGames(IEnumerable<Game> dtos)
+        public async Task<ActionResult<IEnumerable<Game>>> PostGames(IEnumerable<GameDto> dtos)
         {
+            List<Game> games = [];
+            foreach (var dto in dtos)
+            {
+                Game game = await _dbService.GameDtoConversion(dto);
+                games.Add(game);
+            }
 
+            _context.Games.AddRange(games);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction("GetGame", new { id = games[0].Id }, games);
         }
 
         [HttpPut("games/{id}")]
@@ -209,7 +219,9 @@ namespace RbTrackerBE.Controllers
             _context.TeamsInYears.Add(teamInYear);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetTeamInYear", new { id = team.Id }, teamInYear);
+            team.Id = teamInYear.Id;
+            team.TeamName = teamInYear.Team.Name;
+            return CreatedAtAction("GetTeamInYear", new { id = team.Id }, team);
         }
 
         [HttpPost("teamsinyears/many")]
@@ -224,8 +236,24 @@ namespace RbTrackerBE.Controllers
             _context.TeamsInYears.AddRange(tiys);
 
             await _context.SaveChangesAsync();
+            var newDtos = tiys.Select(tiy => new TeamInYearDto()
+            {
+                Id = tiy.Id,
+                TeamId = tiy.TeamId,
+                TeamName = tiy.Team.Name,
+                YearId = tiy.YearId,
+                OfRating = tiy.OfRating,
+                DfRating = tiy.DfRating,
+                Wins = tiy.Wins,
+                Losses = tiy.Losses,
+                Ties = tiy.Ties,
+                LikelyWins = tiy.LikelyWins,
+                LikelyLosses = tiy.LikelyLosses,
+                LikelyTies = tiy.LikelyTies,
+                ByeId = tiy.ByeId
+            }).ToList();
 
-            return CreatedAtAction("GetTeamsInSpecificYear", new { yearId = teams.First().YearId }, tiys);
+            return CreatedAtAction("GetTeamsInSpecificYear", new { yearId = teams.First().YearId }, newDtos);
         }
 
         [HttpPut("teaminyears/{id}")]
@@ -266,6 +294,41 @@ namespace RbTrackerBE.Controllers
             return NoContent();
         }
 
+        [HttpPut("teaminyears/many")]
+        public async Task<ActionResult<IEnumerable<TeamInYear>>> PutManyTeamInYear(IEnumerable<TeamInYearDto> dtos)
+        {
+            foreach (var dto in dtos)
+            {
+                var team = await _context.TeamsInYears.FindAsync(dto.Id);
+                if (team is null)
+                {
+                    return NotFound();
+                }
+
+                team.TeamId = dto.TeamId;
+                team.YearId = dto.YearId;
+                team.OfRating = dto.OfRating;
+                team.DfRating = dto.DfRating;
+                team.Wins = dto.Wins;
+                team.Losses = dto.Losses;
+                team.Ties = dto.Ties;
+                team.LikelyWins = dto.LikelyWins;
+                team.LikelyLosses = dto.LikelyLosses;
+                team.LikelyTies = dto.LikelyTies;
+                team.ByeId = dto.ByeId;
+            }
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception e)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error updating data.");
+            }
+            return NoContent();
+        }
+
         //
         // Weeks
         //
@@ -289,8 +352,9 @@ namespace RbTrackerBE.Controllers
         }
 
         [HttpPost("weeks")]
-        public async Task<ActionResult<Week>> PostWeek(Week week)
+        public async Task<ActionResult<Week>> PostWeek(WeekDto dto)
         {
+            Week week = await _dbService.WeekDtoConversion(dto);
             _context.Weeks.Add(week);
             await _context.SaveChangesAsync();
 
