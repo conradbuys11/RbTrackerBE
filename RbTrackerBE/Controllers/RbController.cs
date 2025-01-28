@@ -203,7 +203,9 @@ namespace RbTrackerBE.Controllers
                 return BadRequest();
             }
 
-            var teamsInYear = await _context.TeamsInYears.Include(team => team.Team).Where(team => team.YearId == yearId).ToListAsync();
+            var teamsInYear = await _context.TeamsInYears
+                .Include(team => team.Team)
+                .Where(team => team.YearId == yearId).ToListAsync();
             if (teamsInYear is null)
             {
                 return NotFound();
@@ -420,6 +422,23 @@ namespace RbTrackerBE.Controllers
         public async Task<ActionResult<Year>> GetYear(int id)
         {
             var year = await _context.Years.FindAsync(id);
+            if (year is null)
+            {
+                return NotFound();
+            }
+            return year;
+        }
+
+        [HttpGet("years/{id}/full")]
+        public async Task<ActionResult<Year>> GetYearFull(int id)
+        {
+            var year = await _context.Years
+                .Include(year => year.Weeks)
+                .ThenInclude(week => week.Games)
+                //.Include(year => year.TeamInYears)
+                //.AsSplitQuery()
+                .Where(year => year.Id == id)
+                .FirstAsync();
             if (year is null)
             {
                 return NotFound();
