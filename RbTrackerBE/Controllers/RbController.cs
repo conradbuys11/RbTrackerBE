@@ -2,6 +2,11 @@
 using Microsoft.EntityFrameworkCore;
 using RbTrackerBE.DatabaseContext;
 using RbTrackerBE.DTOs;
+using RbTrackerBE.DTOs.Game;
+using RbTrackerBE.DTOs.Team;
+using RbTrackerBE.DTOs.TeamInYear;
+using RbTrackerBE.DTOs.Week;
+using RbTrackerBE.DTOs.Year;
 using RbTrackerBE.Models;
 using RbTrackerBE.Services;
 
@@ -488,5 +493,168 @@ namespace RbTrackerBE.Controllers
         //{
 
         //}
+
+        [HttpGet("createyear/teams")]
+        public async Task<ActionResult<IEnumerable<TeamDtoCreateYear>>> CreateYearGetTeams()
+        {
+            var teams = await _context.Teams.ToListAsync();
+            return teams.Select(team => new TeamDtoCreateYear(team.Id, team.Name)).ToList();
+        }
+
+        [HttpPost("createyear/years")]
+        public async Task<ActionResult<YearDtoCreateWeeks>> CreateYearPostYear(YearDtoCreateYear dto)
+        {
+            var year = new Year()
+            {
+                YearNo = dto.YearNo,
+            };
+            _context.Years.Add(year);
+            await _context.SaveChangesAsync();
+
+            var returnDto = new YearDtoCreateWeeks(year.Id, year.YearNo);
+
+            return CreatedAtAction("GetYear", new { id = year.Id }, returnDto);
+        }
+
+        [HttpPost("createyear/teaminyears")]
+        public async Task<ActionResult<IEnumerable<TiyDtoCreateWeeksGet>>> CreateYearPostTeamInYears(IEnumerable<TiyDtoCreateYear> dtos)
+        {
+            var tiys = new List<TeamInYear>();
+            foreach (var dto in dtos)
+            {
+                var team = await _context.Teams.FindAsync(dto.TeamId);
+                if (team is null)
+                {
+                    return NotFound();
+                }
+
+                var tiy = new TeamInYear()
+                {
+                    TeamId = dto.TeamId,
+                    Team = team,
+                    YearId = dto.YearId,
+                    OfRating = dto.OfRating,
+                    DfRating = dto.DfRating,
+                    // int default value is 0, wins/losses/etc. will all get that
+                };
+
+                tiys.Add(tiy);
+            }
+
+            _context.TeamsInYears.AddRange(tiys);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction("GetTeamInYear", new { id = tiys[0].Id },
+                tiys.Select(tiy => new TiyDtoCreateWeeksGet(tiy.Id, tiy.TeamId, tiy.Team.Code, tiy.Team.Name)).ToList());
+        }
+
+        [HttpPost("createweeks/weeks")]
+        public async Task<ActionResult<IEnumerable<WeekDtoCreateWeeks>>> CreateWeeksPostWeeks(IEnumerable<WeekDtoCreateWeeks> dtos)
+        {
+            var weeks = new List<Week>();
+            foreach (var dto in dtos)
+            {
+                var year = await _context.Years.FindAsync(dto.YearId);
+                if (year is null)
+                {
+                    return NotFound();
+                }
+
+                var week = new Week()
+                {
+                    WeekNo = dto.WeekNo,
+                    YearId = dto.YearId,
+                    Year = year
+                };
+
+                weeks.Add(week);
+            }
+
+            _context.Weeks.AddRange(weeks);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction("GetWeek", new { id = weeks[0].Id }, dtos);
+        }
+
+        [HttpPost("createweeks/games")]
+        public async Task<ActionResult<IEnumerable<GameDtoCreateWeeks>>> CreateWeeksPostGames(IEnumerable<GameDtoCreateWeeks> dtos)
+        {
+            var games = new List<Game>();
+            foreach (var dto in dtos)
+            {
+                var awayTeam = await _context.TeamsInYears.FindAsync(dto.AwayTeamId);
+                var homeTeam = await _context.TeamsInYears.FindAsync(dto.HomeTeamId);
+                if (awayTeam is null || homeTeam is null)
+                {
+                    return NotFound();
+                }
+
+                var game = new Game()
+                {
+                    GameType = (Enums.GameType)dto.GameType,
+                    WeekId = dto.WeekId,
+                    AwayTeamId = dto.AwayTeamId,
+                    AwayTeam = awayTeam,
+                    HomeTeamId = dto.HomeTeamId,
+                    HomeTeam = homeTeam,
+                };
+
+                games.Add(game);
+            }
+
+            _context.Games.AddRange(games);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction("GetGame", new { id = games[0].Id }, dtos);
+        }
+
+        [HttpPut("createweeks/teaminyears")]
+        public async Task<ActionResult<IEnumerable<TiyDtoCreateWeeksPut>>> CreateWeeksPutTeamInYears(IEnumerable<TiyDtoCreateWeeksPut> dtos)
+        {
+            foreach (var dto in dtos)
+            {
+                var tiy = await _context.TeamsInYears.FindAsync(dto.Id);
+                if (tiy is null)
+                {
+                    return NotFound();
+                }
+
+                tiy.ByeId = dto.ByeId;
+            }
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception e)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error updating data.");
+            }
+            return NoContent();
+        }
+
+        [HttpGet("viewyear/years/{id}")]
+        public async Task<ActionResult<YearDtoViewYear>> ViewYearGetYear(int id)
+        {
+            var year = await _context.Years
+                .Include(year => year.Weeks)
+                .ThenInclude(week => week.Games)
+                .Include(year => year.TeamInYears)
+                .ThenInclude(tiy => tiy.Team)
+                .FirstAsync(year => year.Id == id);
+            if (year is null)
+            {
+                return NotFound();
+            }
+
+            var weeks = year.Weeks.Select(week => new WeekDtoViewYear(week.Id, week.WeekNo,
+                week.Games.Select(game => new GameDtoViewYearGet(game.Id, week.Id, game.AwayTeamId, game.HomeTeamId, game.AwayTeamScore, game.HomeTeamScore))
+                .ToList()))
+                .ToList();
+            var teams = year.TeamInYears.Select(team => new TiyDtoViewYear(team.Id, team.Team.Name, (int)team.Team.Conference, (int)team.Team.Division, team.OfRating, team.DfRating, team.Wins, team.Losses, team.Ties, team.LikelyWins, team.LikelyLosses, team.LikelyTies, team.ByeId ?? 0)).ToList();
+            var returnYear = new YearDtoViewYear(year.YearNo, weeks, teams);
+
+            return returnYear;
+        }
     }
 }
