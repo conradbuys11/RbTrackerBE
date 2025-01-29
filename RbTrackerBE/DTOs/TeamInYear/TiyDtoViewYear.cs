@@ -1,4 +1,6 @@
-﻿namespace RbTrackerBE.DTOs.TeamInYear
+﻿using RbTrackerBE.Enums;
+
+namespace RbTrackerBE.DTOs.TeamInYear
 {
     /// <summary>
     /// Used to GET a TeamInYear. From ViewYear page.
@@ -7,8 +9,8 @@
     {
         public int Id { get; set; }
         public string TeamName { get; set; }
-        public int TeamConference { get; set; }
-        public int TeamDivision { get; set; }
+        public Conference Conference { get; set; }
+        public Division Division { get; set; }
         public float OfRating { get; set; }
         public float DfRating { get; set; }
         public int Wins { get; set; }
@@ -22,8 +24,8 @@
         public TiyDtoViewYear(
             int id,
             string teamName,
-            int teamConference,
-            int teamDivision,
+            Conference conference,
+            Division division,
             float ofRating,
             float dfRating,
             int wins,
@@ -37,8 +39,8 @@
         {
             Id = id;
             TeamName = teamName;
-            TeamConference = teamConference;
-            TeamDivision = teamDivision;
+            Conference = conference;
+            Division = division;
             OfRating = ofRating;
             DfRating = dfRating;
             Wins = wins;

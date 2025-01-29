@@ -591,7 +591,7 @@ namespace RbTrackerBE.Controllers
 
                 var game = new Game()
                 {
-                    GameType = (Enums.GameType)dto.GameType,
+                    GameType = dto.GameType,
                     WeekId = dto.WeekId,
                     AwayTeamId = dto.AwayTeamId,
                     AwayTeam = awayTeam,
@@ -651,8 +651,8 @@ namespace RbTrackerBE.Controllers
                 week.Games.Select(game => new GameDtoViewYearGet(game.Id, week.Id, game.AwayTeamId, game.HomeTeamId, game.AwayTeamScore, game.HomeTeamScore))
                 .ToList()))
                 .ToList();
-            var teams = year.TeamInYears.Select(team => new TiyDtoViewYear(team.Id, team.Team.Name, (int)team.Team.Conference, (int)team.Team.Division, team.OfRating, team.DfRating, team.Wins, team.Losses, team.Ties, team.LikelyWins, team.LikelyLosses, team.LikelyTies, team.ByeId ?? 0)).ToList();
-            var returnYear = new YearDtoViewYear(year.YearNo, weeks, teams);
+            var teams = year.TeamInYears.Select(team => new TiyDtoViewYear(team.Id, team.Team.Name, team.Team.Conference, team.Team.Division, team.OfRating, team.DfRating, team.Wins, team.Losses, team.Ties, team.LikelyWins, team.LikelyLosses, team.LikelyTies, team.ByeId ?? 0)).ToList();
+            var returnYear = new YearDtoViewYear(id, year.YearNo, weeks, teams);
 
             return returnYear;
         }

@@ -8,12 +8,14 @@ namespace RbTrackerBE.DTOs.Year
     /// </summary>
     public class YearDtoViewYear
     {
+        public int Id { get; set; }
         public int YearNo { get; set; }
         public ICollection<WeekDtoViewYear> Weeks { get; set; }
         public ICollection<TiyDtoViewYear> Teams { get; set; }
 
-        public YearDtoViewYear(int yearNo, ICollection<WeekDtoViewYear> weeks, ICollection<TiyDtoViewYear> teams)
+        public YearDtoViewYear(int id, int yearNo, ICollection<WeekDtoViewYear> weeks, ICollection<TiyDtoViewYear> teams)
         {
+            Id = id;
             YearNo = yearNo;
             Weeks = weeks;
             Teams = teams;
