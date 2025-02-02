@@ -11,6 +11,8 @@ namespace RbTrackerBE.DatabaseContext
         public DbSet<TeamInYear> TeamsInYears { get; set; }
         public DbSet<Week> Weeks { get; set; }
         public DbSet<Year> Years { get; set; }
+        public DbSet<PlayoffPicture> PlayoffPictures { get; set; }
+        public DbSet<TiyInPlayoffPicture> TiyInPlayoffPictures { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

@@ -548,33 +548,57 @@ namespace RbTrackerBE.Controllers
                 tiys.Select(tiy => new TiyDtoCreateWeeksGet(tiy.Id, tiy.TeamId, tiy.Team.Code, tiy.Team.Name)).ToList());
         }
 
+        // currently making weeks one at a time, then getting their ids to feed to the list of games on the front end.
         [HttpPost("createweeks/weeks")]
-        public async Task<ActionResult<IEnumerable<WeekDtoCreateWeeks>>> CreateWeeksPostWeeks(IEnumerable<WeekDtoCreateWeeks> dtos)
+        public async Task<ActionResult<int>> CreateWeeksPostWeek(WeekDtoCreateWeeks dto)
         {
-            var weeks = new List<Week>();
-            foreach (var dto in dtos)
+            var year = await _context.Years.FindAsync(dto.YearId);
+            if (year is null)
             {
-                var year = await _context.Years.FindAsync(dto.YearId);
-                if (year is null)
-                {
-                    return NotFound();
-                }
-
-                var week = new Week()
-                {
-                    WeekNo = dto.WeekNo,
-                    YearId = dto.YearId,
-                    Year = year
-                };
-
-                weeks.Add(week);
+                return NotFound();
             }
 
-            _context.Weeks.AddRange(weeks);
+            var week = new Week()
+            {
+                WeekNo = dto.WeekNo,
+                YearId = dto.YearId,
+                Year = year,
+                PlayoffPicture = new PlayoffPicture { }
+            };
+
+            _context.Weeks.Add(week);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetWeek", new { id = weeks[0].Id }, dtos);
+            return CreatedAtAction("GetWeek", new { id = week.Id }, week.Id);
         }
+
+        //[HttpPost("createweeks/weeks")]
+        //public async Task<ActionResult<IEnumerable<WeekDtoCreateWeeks>>> CreateWeeksPostWeeks(IEnumerable<WeekDtoCreateWeeks> dtos)
+        //{
+        //    var weeks = new List<Week>();
+        //    foreach (var dto in dtos)
+        //    {
+        //        var year = await _context.Years.FindAsync(dto.YearId);
+        //        if (year is null)
+        //        {
+        //            return NotFound();
+        //        }
+
+        //        var week = new Week()
+        //        {
+        //            WeekNo = dto.WeekNo,
+        //            YearId = dto.YearId,
+        //            Year = year
+        //        };
+
+        //        weeks.Add(week);
+        //    }
+
+        //    _context.Weeks.AddRange(weeks);
+        //    await _context.SaveChangesAsync();
+
+        //    return CreatedAtAction("GetWeek", new { id = weeks[0].Id }, dtos);
+        //}
 
         [HttpPost("createweeks/games")]
         public async Task<ActionResult<IEnumerable<GameDtoCreateWeeks>>> CreateWeeksPostGames(IEnumerable<GameDtoCreateWeeks> dtos)
@@ -631,6 +655,44 @@ namespace RbTrackerBE.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, "Error updating data.");
             }
             return NoContent();
+        }
+
+        private async Task CalculateLikelyRecords(int id)
+        {
+            var year = await _context.Years
+                .Include(year => year.Weeks)
+                .ThenInclude(week => week.Games)
+                .Include(year => year.TeamInYears)
+                .FirstAsync(year => year.Id == id);
+            foreach (var week in year.Weeks)
+            {
+                foreach (var game in week.Games)
+                {
+                    if (game.AwayTeam.AvRating() > game.HomeTeam.AvRating())
+                    {
+                        game.AwayTeam.LikelyWins += 1;
+                        game.HomeTeam.LikelyLosses += 1;
+                    }
+                    else if (game.AwayTeam.AvRating() < game.HomeTeam.AvRating())
+                    {
+                        game.AwayTeam.LikelyLosses += 1;
+                        game.HomeTeam.LikelyWins += 1;
+                    }
+                    else
+                    {
+                        game.AwayTeam.LikelyTies += 1;
+                        game.HomeTeam.LikelyTies += 1;
+                    }
+                }
+            }
+            await _context.SaveChangesAsync();
+        }
+
+        [HttpPost("createweeks/likelyrecord/year/{id}")]
+        public async Task<ActionResult<bool>> CalcRecords(int id)
+        {
+            await CalculateLikelyRecords(id);
+            return Ok(true);
         }
 
         [HttpGet("viewyear/years/{id}")]

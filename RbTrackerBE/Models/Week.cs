@@ -9,6 +9,7 @@ namespace RbTrackerBE.Models
         public int WeekNo { get; set; }
         public int YearId { get; set; }
         public Year Year { get; set; } = null!;
+        public PlayoffPicture? PlayoffPicture { get; set; }
         public ICollection<Game> Games { get; } = new List<Game>();
         public ICollection<TeamInYear> Byes { get; } = new List<TeamInYear>();
     }
