@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using RbTrackerBE.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace RbTrackerBE.Models
 {
@@ -22,6 +23,8 @@ namespace RbTrackerBE.Models
         // public string LikelyRecord { get; set; } should be a function
         public int? ByeId { get; set; }
         public Week? Bye { get; set; }
+        public int Seed { get; set; }
+        public YearResult Result { get; set; }
         public ICollection<Game> AwayGames { get; } = new List<Game>();
         public ICollection<Game> HomeGames { get; } = new List<Game>();
     }

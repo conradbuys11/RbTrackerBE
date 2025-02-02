@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using RbTrackerBE.DatabaseContext;
 using RbTrackerBE.DTOs;
 using RbTrackerBE.DTOs.Game;
+using RbTrackerBE.DTOs.PlayoffStanding;
 using RbTrackerBE.DTOs.Team;
 using RbTrackerBE.DTOs.TeamInYear;
 using RbTrackerBE.DTOs.Week;
@@ -549,151 +550,207 @@ namespace RbTrackerBE.Controllers
         }
 
         // currently making weeks one at a time, then getting their ids to feed to the list of games on the front end.
+        //[HttpPost("createweeks/weeks")]
+        //public async Task<ActionResult<int>> CreateWeeksPostWeek(WeekDtoCreateWeeks dto)
+        //{
+        //    var year = await _context.Years.FindAsync(dto.YearId);
+        //    if (year is null)
+        //    {
+        //        return NotFound();
+        //    }
+
+        //    var week = new Week()
+        //    {
+        //        WeekNo = dto.WeekNo,
+        //        YearId = dto.YearId,
+        //        Year = year,
+        //        PlayoffPicture = new PlayoffPicture { }
+        //    };
+
+        //    _context.Weeks.Add(week);
+        //    await _context.SaveChangesAsync();
+
+        //    return CreatedAtAction("GetWeek", new { id = week.Id }, week.Id);
+        //}
+
         [HttpPost("createweeks/weeks")]
-        public async Task<ActionResult<int>> CreateWeeksPostWeek(WeekDtoCreateWeeks dto)
+        public async Task<ActionResult<IEnumerable<WeekDtoCreateWeeks>>> CreateWeeksPostWeeks(IEnumerable<WeekDtoCreateWeeks> dtos)
         {
-            var year = await _context.Years.FindAsync(dto.YearId);
+            var year = await _context.Years
+                .Include(year => year.TeamInYears)
+                .FirstAsync(year => year.Id == dtos.First().YearId);
             if (year is null)
             {
                 return NotFound();
             }
 
-            var week = new Week()
+            var weeks = new List<Week>();
+            foreach (var weekDto in dtos)
             {
-                WeekNo = dto.WeekNo,
-                YearId = dto.YearId,
-                Year = year,
-                PlayoffPicture = new PlayoffPicture { }
-            };
 
-            _context.Weeks.Add(week);
+                var week = new Week
+                {
+                    WeekNo = weekDto.WeekNo,
+                    YearId = weekDto.YearId,
+                    Year = year,
+                    Games = weekDto.Games.Select(gameDto =>
+                    {
+                        Game game = new Game
+                        {
+                            GameType = gameDto.GameType,
+                            AwayTeamId = gameDto.AwayTeamId,
+                            AwayTeam = year.TeamInYears.First(team => team.Id == gameDto.AwayTeamId),
+                            HomeTeamId = gameDto.HomeTeamId,
+                            HomeTeam = year.TeamInYears.First(team => team.Id == gameDto.HomeTeamId),
+                        };
+
+                        // adjust expected record for each team in a game
+                        if (game.AwayTeam.AvRating() > game.HomeTeam.AvRating())
+                        {
+                            game.AwayTeam.LikelyWins += 1;
+                            game.HomeTeam.LikelyLosses += 1;
+                        }
+                        else if (game.AwayTeam.AvRating() < game.HomeTeam.AvRating())
+                        {
+                            game.AwayTeam.LikelyLosses += 1;
+                            game.HomeTeam.LikelyWins += 1;
+                        }
+                        else
+                        {
+                            game.AwayTeam.LikelyTies += 1;
+                            game.HomeTeam.LikelyTies += 1;
+                        }
+
+                        return game;
+                    }).ToList()
+                };
+                // assign byes to teams who don't have games this week
+                // if there are less than 16 games in a week, that means there are byes that we want to assign
+                if (week.Games.Count < 16)
+                {
+                    foreach (var team in year.TeamInYears)
+                    {
+                        // if the team already has a bye, don't check
+                        if (team.Bye is not null) continue;
+                        foreach (var game in week.Games)
+                        {
+                            // if a game has the team as either the home or away team, we know they won't have a bye this week
+                            if (team.Id == game.AwayTeamId || team.Id == game.HomeTeamId)
+                            {
+                                break;
+                            }
+
+                            // if this was the last game of the week, and we still haven't found anything, then this is the team's bye week
+                            if (week.Games.Last().AwayTeamId == game.AwayTeamId)
+                            {
+                                team.Bye = week;
+                            }
+                        }
+                    }
+                }
+                weeks.Add(week);
+            }
+
+            _context.Weeks.AddRange(weeks);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetWeek", new { id = week.Id }, week.Id);
+            return CreatedAtAction("GetWeek", new { id = weeks[0].Id }, dtos);
         }
 
-        //[HttpPost("createweeks/weeks")]
-        //public async Task<ActionResult<IEnumerable<WeekDtoCreateWeeks>>> CreateWeeksPostWeeks(IEnumerable<WeekDtoCreateWeeks> dtos)
+        //[HttpPost("createweeks/games")]
+        //public async Task<ActionResult<IEnumerable<GameDtoCreateWeeks>>> CreateWeeksPostGames(IEnumerable<GameDtoCreateWeeks> dtos)
         //{
-        //    var weeks = new List<Week>();
+        //    var games = new List<Game>();
         //    foreach (var dto in dtos)
         //    {
-        //        var year = await _context.Years.FindAsync(dto.YearId);
-        //        if (year is null)
+        //        var awayTeam = await _context.TeamsInYears.FindAsync(dto.AwayTeamId);
+        //        var homeTeam = await _context.TeamsInYears.FindAsync(dto.HomeTeamId);
+        //        if (awayTeam is null || homeTeam is null)
         //        {
         //            return NotFound();
         //        }
 
-        //        var week = new Week()
+        //        var game = new Game()
         //        {
-        //            WeekNo = dto.WeekNo,
-        //            YearId = dto.YearId,
-        //            Year = year
+        //            GameType = dto.GameType,
+        //            WeekId = dto.WeekId,
+        //            AwayTeamId = dto.AwayTeamId,
+        //            AwayTeam = awayTeam,
+        //            HomeTeamId = dto.HomeTeamId,
+        //            HomeTeam = homeTeam,
         //        };
 
-        //        weeks.Add(week);
+        //        games.Add(game);
         //    }
 
-        //    _context.Weeks.AddRange(weeks);
+        //    _context.Games.AddRange(games);
         //    await _context.SaveChangesAsync();
 
-        //    return CreatedAtAction("GetWeek", new { id = weeks[0].Id }, dtos);
+        //    return CreatedAtAction("GetGame", new { id = games[0].Id }, dtos);
         //}
 
-        [HttpPost("createweeks/games")]
-        public async Task<ActionResult<IEnumerable<GameDtoCreateWeeks>>> CreateWeeksPostGames(IEnumerable<GameDtoCreateWeeks> dtos)
-        {
-            var games = new List<Game>();
-            foreach (var dto in dtos)
-            {
-                var awayTeam = await _context.TeamsInYears.FindAsync(dto.AwayTeamId);
-                var homeTeam = await _context.TeamsInYears.FindAsync(dto.HomeTeamId);
-                if (awayTeam is null || homeTeam is null)
-                {
-                    return NotFound();
-                }
+        //[HttpPut("createweeks/teaminyears")]
+        //public async Task<ActionResult<IEnumerable<TiyDtoCreateWeeksPut>>> CreateWeeksPutTeamInYears(IEnumerable<TiyDtoCreateWeeksPut> dtos)
+        //{
+        //    foreach (var dto in dtos)
+        //    {
+        //        var tiy = await _context.TeamsInYears.FindAsync(dto.Id);
+        //        if (tiy is null)
+        //        {
+        //            return NotFound();
+        //        }
 
-                var game = new Game()
-                {
-                    GameType = dto.GameType,
-                    WeekId = dto.WeekId,
-                    AwayTeamId = dto.AwayTeamId,
-                    AwayTeam = awayTeam,
-                    HomeTeamId = dto.HomeTeamId,
-                    HomeTeam = homeTeam,
-                };
+        //        tiy.ByeId = dto.ByeId;
+        //    }
 
-                games.Add(game);
-            }
+        //    try
+        //    {
+        //        await _context.SaveChangesAsync();
+        //    }
+        //    catch (Exception e)
+        //    {
+        //        return StatusCode(StatusCodes.Status500InternalServerError, "Error updating data.");
+        //    }
+        //    return NoContent();
+        //}
 
-            _context.Games.AddRange(games);
-            await _context.SaveChangesAsync();
+        //private async Task CalculateLikelyRecords(int id)
+        //{
+        //    var year = await _context.Years
+        //        .Include(year => year.Weeks)
+        //        .ThenInclude(week => week.Games)
+        //        .Include(year => year.TeamInYears)
+        //        .FirstAsync(year => year.Id == id);
+        //    foreach (var week in year.Weeks)
+        //    {
+        //        foreach (var game in week.Games)
+        //        {
+        //            if (game.AwayTeam.AvRating() > game.HomeTeam.AvRating())
+        //            {
+        //                game.AwayTeam.LikelyWins += 1;
+        //                game.HomeTeam.LikelyLosses += 1;
+        //            }
+        //            else if (game.AwayTeam.AvRating() < game.HomeTeam.AvRating())
+        //            {
+        //                game.AwayTeam.LikelyLosses += 1;
+        //                game.HomeTeam.LikelyWins += 1;
+        //            }
+        //            else
+        //            {
+        //                game.AwayTeam.LikelyTies += 1;
+        //                game.HomeTeam.LikelyTies += 1;
+        //            }
+        //        }
+        //    }
+        //    await _context.SaveChangesAsync();
+        //}
 
-            return CreatedAtAction("GetGame", new { id = games[0].Id }, dtos);
-        }
-
-        [HttpPut("createweeks/teaminyears")]
-        public async Task<ActionResult<IEnumerable<TiyDtoCreateWeeksPut>>> CreateWeeksPutTeamInYears(IEnumerable<TiyDtoCreateWeeksPut> dtos)
-        {
-            foreach (var dto in dtos)
-            {
-                var tiy = await _context.TeamsInYears.FindAsync(dto.Id);
-                if (tiy is null)
-                {
-                    return NotFound();
-                }
-
-                tiy.ByeId = dto.ByeId;
-            }
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (Exception e)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, "Error updating data.");
-            }
-            return NoContent();
-        }
-
-        private async Task CalculateLikelyRecords(int id)
-        {
-            var year = await _context.Years
-                .Include(year => year.Weeks)
-                .ThenInclude(week => week.Games)
-                .Include(year => year.TeamInYears)
-                .FirstAsync(year => year.Id == id);
-            foreach (var week in year.Weeks)
-            {
-                foreach (var game in week.Games)
-                {
-                    if (game.AwayTeam.AvRating() > game.HomeTeam.AvRating())
-                    {
-                        game.AwayTeam.LikelyWins += 1;
-                        game.HomeTeam.LikelyLosses += 1;
-                    }
-                    else if (game.AwayTeam.AvRating() < game.HomeTeam.AvRating())
-                    {
-                        game.AwayTeam.LikelyLosses += 1;
-                        game.HomeTeam.LikelyWins += 1;
-                    }
-                    else
-                    {
-                        game.AwayTeam.LikelyTies += 1;
-                        game.HomeTeam.LikelyTies += 1;
-                    }
-                }
-            }
-            await _context.SaveChangesAsync();
-        }
-
-        [HttpPost("createweeks/likelyrecord/year/{id}")]
-        public async Task<ActionResult<bool>> CalcRecords(int id)
-        {
-            await CalculateLikelyRecords(id);
-            return Ok(true);
-        }
+        //[HttpPost("createweeks/likelyrecord/year/{id}")]
+        //public async Task<ActionResult<bool>> CalcRecords(int id)
+        //{
+        //    await CalculateLikelyRecords(id);
+        //    return Ok(true);
+        //}
 
         [HttpGet("viewyear/years/{id}")]
         public async Task<ActionResult<YearDtoViewYear>> ViewYearGetYear(int id)
@@ -701,6 +758,8 @@ namespace RbTrackerBE.Controllers
             var year = await _context.Years
                 .Include(year => year.Weeks)
                 .ThenInclude(week => week.Games)
+                .Include(year => year.Weeks)
+                .ThenInclude(week => week.PlayoffStandings)
                 .Include(year => year.TeamInYears)
                 .ThenInclude(tiy => tiy.Team)
                 .FirstAsync(year => year.Id == id);
@@ -709,10 +768,15 @@ namespace RbTrackerBE.Controllers
                 return NotFound();
             }
 
-            var weeks = year.Weeks.Select(week => new WeekDtoViewYear(week.Id, week.WeekNo,
-                week.Games.Select(game => new GameDtoViewYearGet(game.Id, week.Id, game.AwayTeamId, game.HomeTeamId, game.AwayTeamScore, game.HomeTeamScore))
-                .ToList()))
-                .ToList();
+            var weeks = year.Weeks.Select(week => new WeekDtoViewYear
+            (
+                week.Id,
+                week.WeekNo,
+                week.Games.Select(game => new GameDtoViewYearGet(game.Id, week.Id, game.AwayTeamId, game.HomeTeamId, game.AwayTeamScore, game.HomeTeamScore)).ToList(),
+                week.PlayoffStandings.Select(standing => new PlayoffStandingDtoViewYearGetPut(standing.Id, standing.WeekId, standing.TeamInYearId, standing.Conference, standing.Seed, standing.Record, standing.Change)).ToList()
+                )
+
+            ).ToList();
             var teams = year.TeamInYears.Select(team => new TiyDtoViewYear(team.Id, team.Team.Name, team.Team.Conference, team.Team.Division, team.OfRating, team.DfRating, team.Wins, team.Losses, team.Ties, team.LikelyWins, team.LikelyLosses, team.LikelyTies, team.ByeId ?? 0)).ToList();
             var returnYear = new YearDtoViewYear(id, year.YearNo, weeks, teams);
 
