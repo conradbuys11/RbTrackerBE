@@ -777,10 +777,22 @@ namespace RbTrackerBE.Controllers
                 )
 
             ).ToList();
-            var teams = year.TeamInYears.Select(team => new TiyDtoViewYear(team.Id, team.Team.Name, team.Team.Conference, team.Team.Division, team.OfRating, team.DfRating, team.Wins, team.Losses, team.Ties, team.LikelyWins, team.LikelyLosses, team.LikelyTies, team.ByeId ?? 0)).ToList();
+            var teams = year.TeamInYears.Select(team => new TiyDtoViewYear(team.Id, team.Team.Name, team.Team.Conference, team.Team.Division, team.OfRating, team.DfRating, team.Wins, team.Losses, team.Ties, team.LikelyWins, team.LikelyLosses, team.LikelyTies, team.ByeId ?? 0, team.Seed, team.Result)).ToList();
             var returnYear = new YearDtoViewYear(id, year.YearNo, weeks, teams);
 
             return returnYear;
+        }
+
+        // UNDER CONSTRUCTION
+        [HttpGet("/viewweek/weeks/{id}")]
+        public async Task<ActionResult<WeekDtoViewWeek>> ViewWeekGetWeek(int id)
+        {
+            var week = await _context.Weeks
+                .Include(week => week.PlayoffStandings)
+                .Include(week => week.Games)
+                .FirstAsync(week => week.Id == id);
+
+            return new WeekDtoViewWeek();
         }
     }
 }

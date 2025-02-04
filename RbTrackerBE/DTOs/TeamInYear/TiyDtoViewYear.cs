@@ -20,6 +20,8 @@ namespace RbTrackerBE.DTOs.TeamInYear
         public int LikelyLosses { get; set; }
         public int LikelyTies { get; set; }
         public int ByeId { get; set; }
+        public int Seed { get; set; }
+        public YearResult Result { get; set; }
 
         public TiyDtoViewYear(
             int id,
@@ -34,7 +36,9 @@ namespace RbTrackerBE.DTOs.TeamInYear
             int likelyWins,
             int likelyLosses,
             int likelyTies,
-            int byeId
+            int byeId,
+            int seed,
+            YearResult result
             )
         {
             Id = id;
@@ -50,6 +54,8 @@ namespace RbTrackerBE.DTOs.TeamInYear
             LikelyLosses = likelyLosses;
             LikelyTies = likelyTies;
             ByeId = byeId;
+            Seed = seed;
+            Result = result;
         }
     }
 }
